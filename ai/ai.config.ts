@@ -5,7 +5,7 @@ export function getAgentModel() {
         apiKey: process.env.OPENROUTER_API_KEY || "",
     });
 
-    const modelId = process.env.OPENROUTER_DEFAULT_MODEL || "openrouter/free";
+    const modelId = process.env.OPENROUTER_DEFAULT_MODEL || "deepseek/deepseek-r1:free";
 
     return provider(modelId);
 }
