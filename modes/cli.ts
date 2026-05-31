@@ -1,0 +1,38 @@
+import chalk from "chalk";
+import { select, isCancel } from "@clack/prompts";
+// import { runAgentMode } from "./agent/orchestrator";
+// import { runAskMode } from "./ask/orchestrator";
+// import { runPlanMode } from "./plan/orchestrator";
+
+export async function runCliMode() {
+  while (true) {
+    const mode = await select({
+      message: "Choose CLI sub-mode",
+      options: [
+        { value: "agent", label: "Agent Mode" },
+        { value: "plan", label: "Plan Mode" },
+        { value: "ask", label: "Ask Mode" },
+        { value: "back", label: "← Back to main menu" },
+      ],
+    });
+
+    if (isCancel(mode) || mode === "back") return;
+
+    if (mode === "agent") {
+        // await runAgentMode()
+        console.log(chalk.dim("Starting Agent Mode..."));
+    }
+    if (mode === "ask") {
+    //    await runAskMode()
+        console.log(chalk.dim("Starting Ask Mode..."));
+    }
+    if (mode === "plan") {
+        // await runPlanMode()
+        console.log(chalk.dim("Starting Plan Mode..."));
+    }
+
+    if (mode !== "agent" && mode !== "plan" && mode !== "ask") {
+      console.log(chalk.yellow("\nThat mode is not implemented yet.\n"));
+    }
+  }
+}
