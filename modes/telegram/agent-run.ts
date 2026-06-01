@@ -1,6 +1,7 @@
 import { tool, ToolLoopAgent, stepCountIs } from "ai";
 import { z } from "zod";
 import { getAgentModel } from "../../ai/ai.config.ts";
+import { formatAiError } from "../../ai/errors.ts";
 import { ActionTracker } from "../agent/action-tracker.ts";
 import { ToolExecutor } from "../agent/tool-executor.ts";
 import { createAgentTools } from "../agent/agent-tools.ts";
@@ -77,8 +78,12 @@ export async function runAsk(ctx: { reply: (t: string, o?: object) => Promise<un
         tools,
     });
 
-    const { text } = await agent.generate({ prompt: question });
-    await replyMd(ctx, text || ("no answer"))
+    try {
+        const { text } = await agent.generate({ prompt: question });
+        await replyMd(ctx, text || ("no answer"))
+    } catch (error) {
+        await replyMd(ctx, `AI request failed: ${formatAiError(error)}`);
+    }
 }
 
 export async function runAgent(ctx: { reply: (t: string, o?: object) => Promise<unknown> }, chatId: number, goal: string) {
@@ -90,8 +95,13 @@ export async function runAgent(ctx: { reply: (t: string, o?: object) => Promise<
         ...agentOptions(config, 40),
         tools,
     });
-    const { text } = await agent.generate({ prompt: goal });
-    if (text?.trim()) await replyMd(ctx, text.trim());
+    try {
+        const { text } = await agent.generate({ prompt: goal });
+        if (text?.trim()) await replyMd(ctx, text.trim());
+    } catch (error) {
+        await replyMd(ctx, `AI request failed: ${formatAiError(error)}`);
+        return;
+    }
     await finishOrApprove(ctx, chatId, tracker, executor, '✅ Done. No file changes were needed.');
 }
 
@@ -113,8 +123,13 @@ export async function runPlanSteps(
             ...agentOptions(config, 30),
             tools,
         });
-        const { text } = await agent.generate({ prompt });
-        if (text?.trim()) await replyMd(ctx, text.trim());
+        try {
+            const { text } = await agent.generate({ prompt });
+            if (text?.trim()) await replyMd(ctx, text.trim());
+        } catch (error) {
+            await replyMd(ctx, `AI request failed: ${formatAiError(error)}`);
+            return;
+        }
     }
 
     await finishOrApprove(ctx, chatId, tracker, executor, '✅ All steps done. No file changes needed.');

@@ -1,23 +1,26 @@
 import { isCancel, text } from "@clack/prompts";
 import chalk from "chalk";
-import { defaultAgentConfig } from "./types";
-import { ActionTracker } from "./action-tracker";
-import { ToolExecutor } from "./tool-executor";
-import { createAgentTools } from "./agent-tools";
 import { stepCountIs, ToolLoopAgent } from "ai";
 import { getAgentModel } from "../../ai";
+import { formatAiError } from "../../ai/errors";
 import { renderTerminalMarkdown } from "../../tui/terminal-md";
 import { runApprovalFlow } from "./approval";
+import { createAgentTools } from "./agent-tools";
+import { ActionTracker } from "./action-tracker";
+import { ToolExecutor } from "./tool-executor";
+import { defaultAgentConfig } from "./types";
 
 export async function runAgentMode() {
-  console.log(chalk.bold("\n🤖 Agent Mode\n"));
+  console.log(chalk.bold("\nAgent Mode\n"));
 
   const goal = await text({
     message: "What would you like the agent to do?",
-    placeholder: "Concrete task for this codebase…",
+    placeholder: "Concrete task for this codebase...",
   });
 
-  if (isCancel(goal) || !goal.trim()) return console.log(chalk.yellow("No goal provided. Returning to previous menu..."));
+  if (isCancel(goal) || !goal.trim()) {
+    return console.log(chalk.yellow("No goal provided. Returning to previous menu..."));
+  }
 
   const config = defaultAgentConfig();
   const tracker = new ActionTracker();
@@ -34,19 +37,26 @@ export async function runAgentMode() {
     tools,
   });
 
-  const result = await agent.generate({
-    prompt: goal.trim(),
-    onStepFinish: ({ toolCalls }) => {
-      for (const tc of toolCalls) {
-        const preview = JSON.stringify(tc.input).slice(0, 160);
-        console.log(
-          chalk.green("  ✓"),
-          chalk.bold(String(tc.toolName)),
-          chalk.dim(preview + (preview.length >= 160 ? "..." : "")),
-        );
-      }
-    },
-  });
+  let result;
+
+  try {
+    result = await agent.generate({
+      prompt: goal.trim(),
+      onStepFinish: ({ toolCalls }) => {
+        for (const tc of toolCalls) {
+          const preview = JSON.stringify(tc.input).slice(0, 160);
+          console.log(
+            chalk.green("  ok"),
+            chalk.bold(String(tc.toolName)),
+            chalk.dim(preview + (preview.length >= 160 ? "..." : "")),
+          );
+        }
+      },
+    });
+  } catch (error) {
+    console.error(chalk.red(`\nAI request failed: ${formatAiError(error)}\n`));
+    return;
+  }
 
   if (result.text?.trim()) console.log(renderTerminalMarkdown(result.text));
 
@@ -57,13 +67,10 @@ export async function runAgentMode() {
 
   if (errors.length) {
     console.log(chalk.red("\nSome operations reported errors:\n"));
-    for (const e of errors) console.log(chalk.red(`  • ${e}`));
-  }
-  else {
-    console.log(chalk.green('\n✓ Applied.\n'));
+    for (const e of errors) console.log(chalk.red(`  - ${e}`));
+  } else {
+    console.log(chalk.green("\nApplied.\n"));
   }
 
-  executor.clearStaging()
-
+  executor.clearStaging();
 }
-

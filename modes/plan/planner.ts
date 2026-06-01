@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import chalk from "chalk";
 import { getAgentModel } from "../../ai/ai.config.ts";
+import { formatAiError } from "../../ai/errors.ts";
 import { ActionTracker } from "../agent/action-tracker.ts";
 import { ToolExecutor } from "../agent/tool-executor.ts";
 import { defaultAgentConfig } from "../agent/types.ts";
@@ -121,14 +122,20 @@ export async function generatePlan(goal: string) {
 
   console.log(chalk.cyan("\n🔍 Researching & drafting a plan…\n"));
 
-  const result = await generateText({
-    model,
-    tools,
-    stopWhen:stepCountIs(20),
-    system:PLAN_INSTRUCTIONS(config.codebasePath , hasWeb),
-    prompt:`User goal: \n${goal}`,
-    output:Output.object({schema:planSchema})
-  });
+  let result: Awaited<ReturnType<typeof generateText>>;
+
+  try {
+    result = await generateText({
+      model,
+      tools,
+      stopWhen:stepCountIs(20),
+      system:PLAN_INSTRUCTIONS(config.codebasePath , hasWeb),
+      prompt:`User goal: \n${goal}`,
+      output:Output.object({schema:planSchema})
+    });
+  } catch (error) {
+    throw new Error(formatAiError(error));
+  }
 
   const validated = planSchema.parse(result.output);
 

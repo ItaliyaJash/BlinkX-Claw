@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { confirm, isCancel, text } from "@clack/prompts";
 import { ToolLoopAgent, stepCountIs } from "ai";
 import { getAgentModel } from "../../ai/ai.config.ts";
+import { formatAiError } from "../../ai/errors.ts";
 import { ActionTracker } from "../agent/action-tracker.ts";
 import { ToolExecutor } from "../agent/tool-executor.ts";
 import { createAgentTools } from "../agent/agent-tools.ts";
@@ -25,7 +26,14 @@ export async function runPlanMode(): Promise<void> {
   const goal = await text({ message: "What is your goal?" });
   if (isCancel(goal) || !goal.trim()) return;
 
-  const plan = await generatePlan(goal);
+  let plan;
+
+  try {
+    plan = await generatePlan(goal);
+  } catch (error) {
+    console.error(chalk.red(`\nAI request failed: ${formatAiError(error)}\n`));
+    return;
+  }
 
   printPlan(plan);
 
@@ -56,7 +64,14 @@ export async function runPlanMode(): Promise<void> {
       tools
     });
 
-    const r = await agent.generate({prompt:stepPrompt(plan.goal , step)})
+    let r;
+
+    try {
+      r = await agent.generate({prompt:stepPrompt(plan.goal , step)})
+    } catch (error) {
+      console.error(chalk.red(`\nAI request failed: ${formatAiError(error)}\n`));
+      return;
+    }
 
     if(r.text) return console.log(renderTerminalMarkdown(r.text))
 

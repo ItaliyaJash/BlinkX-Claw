@@ -3,6 +3,7 @@ import { confirm, isCancel, text } from "@clack/prompts";
 import { ToolLoopAgent, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import { getAgentModel } from "../../ai/ai.config.ts";
+import { formatAiError } from "../../ai/errors.ts";
 import { ActionTracker } from "../agent/action-tracker.ts";
 import { ToolExecutor } from "../agent/tool-executor.ts";
 import { defaultAgentConfig } from "../agent/types.ts";
@@ -103,7 +104,14 @@ export async function runAskMode() {
         tools,
     });
 
-    const result = await agent.generate({ prompt: question.trim() });
+    let result;
+
+    try {
+        result = await agent.generate({ prompt: question.trim() });
+    } catch (error) {
+        console.error(chalk.red(`\nAI request failed: ${formatAiError(error)}\n`));
+        return;
+    }
     const answer = result.text?.trim() || "(no answer)";
     console.log("\n" + renderTerminalMarkdown(answer) + "\n");
 
