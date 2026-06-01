@@ -94,7 +94,7 @@ export async function runAskMode() {
 
     const tools = {
         ...createAskTools(executor),
-        // ...createWebTools(tracker)
+        ...createWebTools(tracker)
     };
 
     const agent = new ToolLoopAgent({
@@ -132,4 +132,4 @@ export async function runAskMode() {
 
     executor.applyApprovedFromTracker();
     executor.clearStaging();
-} 
+}
